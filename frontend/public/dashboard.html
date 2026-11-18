@@ -7,511 +7,135 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 :root {
   color-scheme: dark;
-  --bg: #0a0e17;
-  --surface: #0f1420;
-  --surface-2: #141b2d;
-  --border: rgba(56, 189, 248, 0.06);
-  --border-active: rgba(56, 189, 248, 0.15);
-  --text: #e2e8f0;
-  --text-dim: #64748b;
-  --accent: #38bdf8;
-  --green: #10b981;
-  --green-bg: rgba(16, 185, 129, 0.08);
-  --red: #ef4444;
-  --red-bg: rgba(239, 68, 68, 0.08);
-  --amber: #f59e0b;
-  --amber-bg: rgba(245, 158, 11, 0.08);
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --bg: #080b12;
+  --surface: #0d1117;
+  --surface-2: #151b28;
+  --border: rgba(48, 54, 61, 0.7);
+  --border-hi: rgba(56, 189, 248, 0.2);
+  --text: #e6edf3;
+  --dim: #7d8590;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --green-bg: rgba(63, 185, 80, 0.1);
+  --red: #f85149;
+  --red-bg: rgba(248, 81, 73, 0.1);
+  --amber: #d29922;
+  --amber-bg: rgba(210, 153, 34, 0.1);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Space Grotesk', system-ui, sans-serif;
 }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;min-height:100vh}
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Header ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.4px}
+.brand-mark{width:26px;height:26px;background:linear-gradient(135deg,var(--accent),#a371f7);border-radius:6px;display:grid;place-items:center;font-size:13px;font-weight:800;color:#080b12}
+.brand b{color:var(--accent)}
+.hdr-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1.5;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+/* ── Status pill ── */
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:100px;font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.7px}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.running{background:var(--green-bg);color:var(--green);border:1px solid rgba(63,185,80,.25)}
+.pill.running::before{animation:blink 2s ease-in-out infinite}
+.pill.paused{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(210,153,34,.25)}
+.pill.halted{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,81,73,.25)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* Header */
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  gap: 16px;
-  flex-wrap: wrap;
-}
+/* ── Buttons ── */
+button{font-family:var(--sans);font-size:12px;font-weight:600;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+button:hover{border-color:var(--accent);background:var(--surface)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--green);border-color:var(--green);color:#0d1117}
+button.primary:hover{background:#56d364;border-color:#56d364}
+button.danger{background:var(--red-bg);border-color:rgba(248,81,73,.2);color:var(--red)}
+button.danger:hover{background:rgba(248,81,73,.18);border-color:var(--red)}
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: -0.5px;
-}
+/* ── Layout ── */
+main{max-width:1600px;margin:0 auto;padding:16px 20px 40px}
 
-.brand-mark {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, var(--accent), #6366f1);
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  font-weight: 800;
-  color: #0a0e17;
-}
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.kpi-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);margin-bottom:6px}
+.kpi-val{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-1px;line-height:1}
+.kpi-sub{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:5px}
+.green{color:var(--green)}.red{color:var(--red)}
 
-.brand b { color: var(--accent); }
+/* Terminal grid */
+.term-grid{display:grid;grid-template-columns:1fr 360px;gap:10px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px}
+.pt{font-size:12px;font-weight:600;letter-spacing:-.2px}
+.pm{font-family:var(--mono);font-size:9px;color:var(--dim)}
+.pb{padding:14px}
 
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+/* Chart */
+.chart-panel{grid-column:1;grid-row:1/span 2;min-height:480px}
+#chart-container{width:100%;height:460px}
 
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 100px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
+/* Motor */
+.motor-panel{grid-column:2;grid-row:1}
+.motor-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:12px}
+.led{width:9px;height:9px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.led.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.led.wait{background:var(--amber)}
+.led.err{background:var(--red)}
+.pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.info-lbl{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);margin-bottom:3px}
+.info-val{font-family:var(--mono);font-size:13px;font-weight:600}
+.last-box{padding:10px 12px;background:var(--surface-2);border-radius:6px;font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim);margin-bottom:12px;word-break:break-word}
 
-.status-pill.running { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
-.status-pill.paused { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
-.status-pill.halted { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+/* AI Panel */
+.ai-panel{grid-column:2;grid-row:2}
+.ai-rows{display:grid;gap:0}
+.ai-r{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
+.ai-r:last-child{border-bottom:none}
+.ai-r .l{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim)}
+.ai-r .v{font-family:var(--mono);font-size:10px;font-weight:500}
+.ai-r .v.ok{color:var(--green)}.ai-r .v.warn{color:var(--amber)}.ai-r .v.err{color:var(--red)}
+.ai-log{margin-top:10px;padding:9px 10px;background:var(--surface-2);border-radius:5px;font-family:var(--mono);font-size:9px;line-height:1.7;color:var(--dim);max-height:110px;overflow-y:auto;word-break:break-word}
 
-.status-pill::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.status-pill.running::before { animation: pulse 2s ease-in-out infinite; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-/* Buttons */
-button {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border-active);
-  background: var(--surface-2);
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-button:hover {
-  background: var(--surface);
-  border-color: var(--accent);
-}
-
-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-button.primary {
-  background: var(--green);
-  border-color: var(--green);
-  color: #022c22;
-}
-
-button.primary:hover { background: #34d399; border-color: #34d399; }
-
-button.danger {
-  background: var(--red-bg);
-  border-color: rgba(239,68,68,0.2);
-  color: var(--red);
-}
-
-button.danger:hover { background: rgba(239,68,68,0.15); border-color: var(--red); }
-
-/* Main Layout */
-main {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 20px 24px 40px;
-}
-
-/* KPI Strip */
-.kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.kpi-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px 18px;
-}
-
-.kpi-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-}
-
-.kpi-value {
-  font-family: var(--font-mono);
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -1px;
-  line-height: 1;
-}
-
-.kpi-sub {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: 6px;
-}
-
-.green { color: var(--green); }
-.red { color: var(--red); }
-
-/* Terminal Grid */
-.terminal-grid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  grid-template-rows: auto auto;
-  gap: 12px;
-}
-
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  gap: 12px;
-}
-
-.panel-title {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.2px;
-}
-
-.panel-meta {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-dim);
-}
-
-.panel-body { padding: 16px; }
-
-/* Chart Panel */
-.chart-panel {
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  min-height: 520px;
-}
-
-.chart-container {
-  width: 100%;
-  height: 480px;
-}
-
-/* Motor Panel */
-.motor-panel {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.motor-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 14px;
-}
-
-.motor-indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.motor-indicator.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
-.motor-indicator.paused { background: var(--amber); }
-.motor-indicator.error { background: var(--red); }
-
-.position-info {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.info-block .label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-dim);
-  margin-bottom: 4px;
-}
-
-.info-block .value {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.last-decision {
-  padding: 12px;
-  background: var(--surface-2);
-  border-radius: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--text-dim);
-  margin-bottom: 14px;
-}
-
-/* AI Diagnostics Panel */
-.ai-panel {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.ai-status-grid {
-  display: grid;
-  gap: 10px;
-}
-
-.ai-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.ai-row:last-child { border-bottom: none; }
-
-.ai-row .label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-dim);
-}
-
-.ai-row .value {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.ai-row .value.ok { color: var(--green); }
-.ai-row .value.warn { color: var(--amber); }
-.ai-row .value.err { color: var(--red); }
-
-.ai-log {
-  margin-top: 12px;
-  padding: 10px;
-  background: var(--surface-2);
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.7;
-  color: var(--text-dim);
-  max-height: 120px;
-  overflow-y: auto;
-}
-
-/* Bottom Section */
-.bottom-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
-}
+/* Bottom grid */
+.bot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 
 /* Tables */
-table { width: 100%; border-collapse: collapse; }
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);font-weight:600;text-align:left;padding:9px 10px;border-bottom:1px solid var(--border)}
+td{font-family:var(--mono);font-size:10px;padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.scroll{max-height:300px;overflow-y:auto}
+.scroll::-webkit-scrollbar{width:4px}.scroll::-webkit-scrollbar-track{background:transparent}.scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-th {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-dim);
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
+/* Settings form */
+.sform{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.field label{display:block;font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);margin-bottom:4px}
+input,select{width:100%;padding:7px 9px;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;transition:border-color .15s}
+input:hover,select:hover{border-color:var(--border-hi)}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(88,166,255,.1)}
+input[type=checkbox]{width:auto;accent-color:var(--accent);margin-right:8px;transform:scale(1.2)}
+.chk-field{grid-column:1/-1;display:flex;align-items:center;padding-top:2px}
+.chk-field label{margin-bottom:0;font-size:11px;text-transform:none;letter-spacing:0;color:var(--text)}
+.form-acts{grid-column:1/-1;display:flex;gap:8px;margin-top:2px}
 
-td {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
+.footer{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;letter-spacing:.3px}
 
-tr:last-child td { border-bottom: none; }
-
-.scroll-area {
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.scroll-area::-webkit-scrollbar { width: 4px; }
-.scroll-area::-webkit-scrollbar-track { background: transparent; }
-.scroll-area::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
-
-/* Settings Form */
-.settings-form {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.field label {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--text-dim);
-  margin-bottom: 5px;
-}
-
-input, select {
-  width: 100%;
-  padding: 8px 10px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  transition: border-color 0.15s;
-}
-
-input:hover, select:hover { border-color: var(--border-active); }
-input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56,189,248,0.1); }
-
-input[type=checkbox] {
-  width: auto;
-  accent-color: var(--accent);
-  margin-right: 8px;
-  transform: scale(1.2);
-}
-
-.checkbox-field {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  padding-top: 4px;
-}
-
-.checkbox-field label {
-  margin-bottom: 0;
-  font-size: 11px;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text);
-}
-
-.form-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-/* Footer */
-.footer {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  text-align: center;
-  letter-spacing: 0.3px;
-}
-
-/* Responsive */
-@media (max-width: 1100px) {
-  .terminal-grid { grid-template-columns: 1fr; }
-  .chart-panel { grid-column: 1; grid-row: auto; min-height: 400px; }
-  .motor-panel, .ai-panel { grid-column: 1; grid-row: auto; }
-  .bottom-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 640px) {
-  header { padding: 12px 16px; }
-  main { padding: 12px 12px 32px; }
-  .kpi-strip { grid-template-columns: repeat(2, 1fr); }
-  .kpi-value { font-size: 18px; }
-  .settings-form { grid-template-columns: 1fr; }
-  .chart-container { height: 320px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+@media(max-width:1100px){.term-grid{grid-template-columns:1fr}.chart-panel{grid-column:1;grid-row:auto;min-height:380px}.motor-panel,.ai-panel{grid-column:1;grid-row:auto}.bot-grid{grid-template-columns:1fr}}
+@media(max-width:640px){header{padding:10px 14px}main{padding:10px 10px 32px}.kpi-strip{grid-template-columns:repeat(2,1fr)}.kpi-val{font-size:17px}.sform{grid-template-columns:1fr}#chart-container{height:300px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">
-    <div class="brand-mark">T</div>
-    TRADER <b>IA PRO</b>
-  </div>
-  <div class="header-controls">
-    <span id="running" class="status-pill paused">Pausado</span>
+  <div class="brand"><div class="brand-mark">T</div>TRADER <b>IA PRO</b></div>
+  <div class="hdr-controls">
+    <span id="running" class="pill paused">Pausado</span>
     <button class="primary" onclick="toggle(true)">▶ Iniciar</button>
     <button onclick="toggle(false)">❚❚ Pausar</button>
     <button onclick="run()">↻ Verificar</button>
@@ -519,130 +143,62 @@ input[type=checkbox] {
 </header>
 
 <main>
-  <!-- KPI Strip -->
   <div class="kpi-strip">
-    <div class="kpi-card">
-      <div class="kpi-label">Patrimônio simulado</div>
-      <div class="kpi-value" id="equity">—</div>
-      <div class="kpi-sub">Saldo inicial US$ 10.000</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Saldo disponível</div>
-      <div class="kpi-value" id="cash">—</div>
-      <div class="kpi-sub">USDT fictício</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">P&L realizado</div>
-      <div class="kpi-value" id="pnl">—</div>
-      <div class="kpi-sub">Taxas incluídas</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Preço atual</div>
-      <div class="kpi-value" id="price">—</div>
-      <div class="kpi-sub" id="marketname">BTCUSDT · Binance</div>
-    </div>
+    <div class="kpi"><div class="kpi-label">Patrimônio simulado</div><div class="kpi-val" id="equity">—</div><div class="kpi-sub">Saldo inicial US$ 10.000</div></div>
+    <div class="kpi"><div class="kpi-label">Saldo disponível</div><div class="kpi-val" id="cash">—</div><div class="kpi-sub">USDT fictício</div></div>
+    <div class="kpi"><div class="kpi-label">P&L realizado</div><div class="kpi-val" id="pnl">—</div><div class="kpi-sub">Taxas incluídas</div></div>
+    <div class="kpi"><div class="kpi-label">Preço atual</div><div class="kpi-val" id="price">—</div><div class="kpi-sub" id="marketname">BTCUSDT · Binance</div></div>
   </div>
 
-  <!-- Terminal Grid -->
-  <div class="terminal-grid">
-    <!-- Chart Panel with TradingView -->
+  <div class="term-grid">
+    <!-- Chart -->
     <div class="panel chart-panel">
-      <div class="panel-header">
-        <span class="panel-title">Gráfico ao vivo</span>
-        <span class="panel-meta" id="updated">Carregando...</span>
-      </div>
-      <div class="chart-container" id="tv-chart"></div>
+      <div class="ph"><span class="pt">Gráfico ao vivo · Binance</span><span class="pm" id="updated">Carregando...</span></div>
+      <div id="chart-container"></div>
     </div>
 
-    <!-- Motor Panel -->
+    <!-- Motor -->
     <div class="panel motor-panel">
-      <div class="panel-header">
-        <span class="panel-title">Motor de negociação</span>
-      </div>
-      <div class="panel-body">
-        <div class="motor-status">
-          <div id="motor-led" class="motor-indicator paused"></div>
-          <span id="motor-text" style="font-family:var(--font-mono);font-size:12px;font-weight:600">Aguardando início</span>
+      <div class="ph"><span class="pt">Motor de negociação</span></div>
+      <div class="pb">
+        <div class="motor-row"><div id="motor-led" class="led wait"></div><span id="motor-text" style="font-family:var(--mono);font-size:11px;font-weight:600">Aguardando início</span></div>
+        <div class="pos-grid">
+          <div><div class="info-lbl">Posição aberta</div><div class="info-val" id="position">Nenhuma</div></div>
+          <div><div class="info-lbl">Preço de entrada</div><div class="info-val" id="entry">—</div></div>
         </div>
-        <div class="position-info">
-          <div class="info-block">
-            <div class="label">Posição aberta</div>
-            <div class="value" id="position">Nenhuma</div>
-          </div>
-          <div class="info-block">
-            <div class="label">Preço de entrada</div>
-            <div class="value" id="entry">—</div>
-          </div>
-        </div>
-        <div class="last-decision" id="last">Sem decisões ainda.</div>
-        <div style="margin-top:12px">
-          <div class="kpi-label" style="margin-bottom:6px">Últimas ações</div>
-          <div id="recent-actions" style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);line-height:1.8">
-            Aguardando dados do motor...
-          </div>
-        </div>
+        <div class="last-box" id="last">Sem decisões ainda.</div>
+        <div class="info-lbl" style="margin-bottom:4px">Últimas ações</div>
+        <div id="recent-actions" style="font-family:var(--mono);font-size:9px;color:var(--dim);line-height:1.8">Aguardando dados do motor...</div>
       </div>
     </div>
 
-    <!-- AI Diagnostics Panel -->
+    <!-- AI -->
     <div class="panel ai-panel">
-      <div class="panel-header">
-        <span class="panel-title">Diagnóstico OpenAI</span>
-        <span id="ai-badge" class="status-pill paused" style="font-size:9px;padding:3px 8px">Inativo</span>
-      </div>
-      <div class="panel-body">
-        <div class="ai-status-grid">
-          <div class="ai-row">
-            <span class="label">Status da API</span>
-            <span id="ai-api-status" class="value warn">Não configurada</span>
-          </div>
-          <div class="ai-row">
-            <span class="label">Filtro de entrada</span>
-            <span id="ai-filter-status" class="value warn">Desativado</span>
-          </div>
-          <div class="ai-row">
-            <span class="label">Última consulta</span>
-            <span id="ai-last-query" class="value">—</span>
-          </div>
-          <div class="ai-row">
-            <span class="label">Decisão da IA</span>
-            <span id="ai-last-decision" class="value">—</span>
-          </div>
-          <div class="ai-row">
-            <span class="label">Latência média</span>
-            <span id="ai-latency" class="value">—</span>
-          </div>
+      <div class="ph"><span class="pt">Diagnóstico OpenAI</span><span id="ai-badge" class="pill paused" style="font-size:8px;padding:3px 8px">Inativo</span></div>
+      <div class="pb">
+        <div class="ai-rows">
+          <div class="ai-r"><span class="l">Status da API</span><span id="ai-api-status" class="v warn">Não configurada</span></div>
+          <div class="ai-r"><span class="l">Filtro de entrada</span><span id="ai-filter-status" class="v warn">Desativado</span></div>
+          <div class="ai-r"><span class="l">Última consulta</span><span id="ai-last-query" class="v">—</span></div>
+          <div class="ai-r"><span class="l">Decisão da IA</span><span id="ai-last-decision" class="v">—</span></div>
+          <div class="ai-r"><span class="l">Latência média</span><span id="ai-latency" class="v">—</span></div>
         </div>
-        <div class="ai-log" id="ai-log">
-          [sistema] Aguardando configuração da chave OpenAI no servidor...
-        </div>
+        <div class="ai-log" id="ai-log">[sistema] Aguardando configuração da chave OpenAI no servidor...</div>
       </div>
     </div>
   </div>
 
-  <!-- Bottom Section -->
-  <div class="bottom-grid">
-    <!-- Trades History -->
+  <div class="bot-grid">
+    <!-- Trades -->
     <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Histórico de ordens</span>
-        <span class="panel-meta">Spot · Paper</span>
-      </div>
-      <div class="scroll-area">
-        <table>
-          <thead><tr><th>Data UTC</th><th>Lado</th><th>Par</th><th>Preço</th><th>Qtd</th><th>P&L</th></tr></thead>
-          <tbody id="trades"><tr><td colspan="6" style="color:var(--text-dim)">Nenhuma ordem virtual até agora.</td></tr></tbody>
-        </table>
-      </div>
+      <div class="ph"><span class="pt">Histórico de ordens</span><span class="pm">Spot · Paper</span></div>
+      <div class="scroll"><table><thead><tr><th>Data UTC</th><th>Lado</th><th>Par</th><th>Preço</th><th>Qtd</th><th>P&L</th></tr></thead><tbody id="trades"><tr><td colspan="6" style="color:var(--dim)">Nenhuma ordem virtual até agora.</td></tr></tbody></table></div>
     </div>
-
     <!-- Settings -->
     <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Configurações e proteção</span>
-      </div>
-      <div class="panel-body">
-        <div class="settings-form">
+      <div class="ph"><span class="pt">Configurações e proteção</span></div>
+      <div class="pb">
+        <div class="sform">
           <div class="field"><label>Par de negociação</label><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option></select></div>
           <div class="field"><label>Capital por compra (%)</label><input id="allocation_pct" type="number" min="0.1" max="20" step="0.1"></div>
           <div class="field"><label>Risco por operação (%)</label><input id="risk_pct" type="number" min="0.1" max="2" step="0.1"></div>
@@ -653,252 +209,153 @@ input[type=checkbox] {
           <div class="field"><label>Ordens/dia máx</label><input id="max_trades_day" type="number" min="1" max="20" step="1"></div>
           <div class="field"><label>Cooldown entre ordens (min)</label><input id="cooldown_minutes" type="number" min="1" max="240" step="1"></div>
           <div class="field"><label>Taxa simulada (%)</label><input id="fee_pct" type="number" min="0.01" max="1" step="0.01"></div>
-          <div class="checkbox-field">
-            <input type="checkbox" id="ai_enabled">
-            <label for="ai_enabled">Usar OpenAI como filtro de entrada</label>
-          </div>
-          <div class="form-actions">
-            <button class="primary" onclick="saveSettings()">Salvar configurações</button>
-            <button class="danger" onclick="reset()">Reiniciar simulação</button>
-          </div>
+          <div class="chk-field"><input type="checkbox" id="ai_enabled"><label for="ai_enabled">Usar OpenAI como filtro de entrada</label></div>
+          <div class="form-acts"><button class="primary" onclick="saveSettings()">Salvar configurações</button><button class="danger" onclick="reset()">Reiniciar simulação</button></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Decisions Log (Full Width) -->
-  <div class="panel" style="margin-top:12px">
-    <div class="panel-header">
-      <span class="panel-title">Diário de decisões do robô</span>
-      <span class="panel-meta">Auditoria completa</span>
-    </div>
-    <div class="scroll-area">
-      <table>
-        <thead><tr><th>Data UTC</th><th>Sinal</th><th>Preço</th><th>Justificativa técnica</th><th>Decisão IA</th></tr></thead>
-        <tbody id="decisions"></tbody>
-      </table>
-    </div>
+  <!-- Decisions -->
+  <div class="panel" style="margin-top:10px">
+    <div class="ph"><span class="pt">Diário de decisões do robô</span><span class="pm">Auditoria completa</span></div>
+    <div class="scroll"><table><thead><tr><th>Data UTC</th><th>Sinal</th><th>Preço</th><th>Justificativa técnica</th><th>Decisão IA</th></tr></thead><tbody id="decisions"></tbody></table></div>
   </div>
 
   <div class="footer">Trader IA PRO v1.1 · Paper trading apenas · Sem ordens reais · Binance somente leitura · Sistema experimental</div>
 </main>
 
-<!-- TradingView Widget -->
-<script src="https://s3.tradingview.com/tv.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const money = n => n == null ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+const money = n => n == null ? '—' : new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
 let first = true;
-let tvWidget = null;
-let currentSymbol = 'BINANCE:BTCUSDT';
+let chart = null;
+let candleSeries = null;
+let currentSymbol = 'BTCUSDT';
 
-// Initialize TradingView Widget
-function initChart(symbol) {
-  if (tvWidget) {
-    // Update symbol if widget exists
-    return;
-  }
+// ── Lightweight Charts setup ──
+function initChart() {
+  const container = $('chart-container');
   try {
-    tvWidget = new TradingView.widget({
-      container_id: "tv-chart",
-      autosize: true,
-      symbol: symbol,
-      interval: "15",
-      timezone: "Etc/UTC",
-      theme: "dark",
-      style: "1",
-      locale: "br",
-      toolbar_bg: "#0f1420",
-      enable_publishing: false,
-      hide_top_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-      backgroundColor: "#0a0e17",
-      gridLineColor: "rgba(56, 189, 248, 0.04)",
-      studies: ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
-      overrides: {
-        "mainSeriesProperties.candleStyle.upColor": "#10b981",
-        "mainSeriesProperties.candleStyle.downColor": "#ef4444",
-        "mainSeriesProperties.candleStyle.wickUpColor": "#10b981",
-        "mainSeriesProperties.candleStyle.wickDownColor": "#ef4444",
-        "mainSeriesProperties.candleStyle.borderUpColor": "#10b981",
-        "mainSeriesProperties.candleStyle.borderDownColor": "#ef4444"
-      }
+    chart = LightweightCharts.createChart(container, {
+      layout: { background: { type: 'solid', color: '#0d1117' }, textColor: '#7d8590', fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
+      grid: { vertLines: { color: 'rgba(48,54,61,0.4)' }, horzLines: { color: 'rgba(48,54,61,0.4)' } },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: 'rgba(88,166,255,0.3)', width: 1, style: 2 }, horzLine: { color: 'rgba(88,166,255,0.3)', width: 1, style: 2 } },
+      rightPriceScale: { borderColor: 'rgba(48,54,61,0.7)', scaleMargins: { top: 0.1, bottom: 0.1 } },
+      timeScale: { borderColor: 'rgba(48,54,61,0.7)', timeVisible: true, secondsVisible: false },
+      handleScroll: { vertTouchDrag: false },
     });
+    candleSeries = chart.addCandlestickSeries({
+      upColor: '#3fb950', downColor: '#f85149', borderUpColor: '#3fb950', borderDownColor: '#f85149',
+      wickUpColor: '#3fb950', wickDownColor: '#f85149',
+    });
+    // Responsive resize
+    new ResizeObserver(entries => {
+      for (const entry of entries) {
+        chart.applyOptions({ height: entry.contentRect.height, width: entry.contentRect.width });
+      }
+    }).observe(container);
   } catch(e) {
-    $('tv-chart').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim);font-family:var(--font-mono);font-size:12px">Erro ao carregar gráfico TradingView.<br>Verifique sua conexão.</div>';
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:11px">Erro ao inicializar gráfico.<br>' + e.message + '</div>';
   }
 }
 
-// Map internal symbols to TradingView format
-function mapSymbol(s) {
-  const map = { 'BTCUSDT': 'BINANCE:BTCUSDT', 'ETHUSDT': 'BINANCE:ETHUSDT', 'SOLUSDT': 'BINANCE:SOLUSDT' };
-  return map[s] || 'BINANCE:BTCUSDT';
+// ── Fetch real candles from Binance public API ──
+async function fetchCandles(symbol) {
+  try {
+    const url = 'https://api.binance.com/api/v3/klines?symbol=' + symbol + '&interval=15m&limit=200';
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    // Binance format: [openTime, open, high, low, close, volume, ...]
+    const candles = data.map(d => ({
+      time: Math.floor(d[0] / 1000),
+      open: parseFloat(d[1]),
+      high: parseFloat(d[2]),
+      low: parseFloat(d[3]),
+      close: parseFloat(d[4]),
+    }));
+    if (candleSeries && candles.length) {
+      candleSeries.setData(candles);
+      $('updated').textContent = 'Ao vivo · ' + new Date().toLocaleTimeString('pt-BR');
+    }
+  } catch(e) {
+    $('updated').textContent = 'Erro: ' + e.message;
+  }
 }
 
-async function api(path, opts = {}) {
-  const r = await fetch('/api/' + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+// ── Backend API helpers ──
+async function api(path, opts={}) {
+  const r = await fetch('/api/' + path, { headers:{'Content-Type':'application/json'}, ...opts });
   let v = await r.json();
   if (!r.ok) throw Error(v.detail || 'Falha de comunicação');
   return v;
 }
+async function post(path, data={}) { return api(path, { method:'POST', body:JSON.stringify(data) }) }
+function msg(e) { alert(typeof e==='string'?e:e.message) }
 
-async function post(path, data = {}) { return api(path, { method: 'POST', body: JSON.stringify(data) }) }
-function msg(e) { alert(typeof e === 'string' ? e : e.message) }
-
-async function toggle(enabled) {
-  try { await post('engine', { enabled }); await refresh() } catch (e) { msg(e) }
-}
-
-async function run() {
-  try {
-    let a = await post('step');
-    msg(a.status === 'processed' ? `${a.signal}: ${a.reason}` : a.reason);
-    await refresh();
-  } catch (e) { msg(e) }
-}
+async function toggle(enabled) { try{await post('engine',{enabled});await refresh()}catch(e){msg(e)} }
+async function run() { try{let a=await post('step');msg(a.status==='processed'?`${a.signal}: ${a.reason}`:a.reason);await refresh()}catch(e){msg(e)} }
 
 async function saveSettings() {
   let patch = {};
-  for (let k of ['symbol', 'allocation_pct', 'risk_pct', 'stop_pct', 'take_pct', 'daily_loss_pct', 'max_drawdown_pct', 'max_trades_day', 'cooldown_minutes', 'fee_pct', 'ai_enabled']) {
-    let el = $(k);
-    patch[k] = k === 'symbol' ? el.value : k === 'ai_enabled' ? el.checked : Number(el.value);
+  for (let k of ['symbol','allocation_pct','risk_pct','stop_pct','take_pct','daily_loss_pct','max_drawdown_pct','max_trades_day','cooldown_minutes','fee_pct','ai_enabled']) {
+    let el=$(k); patch[k]=k==='symbol'?el.value:k==='ai_enabled'?el.checked:Number(el.value);
   }
-  try { await post('settings', patch); msg('Configurações salvas'); await refresh() } catch (e) { msg(e) }
+  try{await post('settings',patch);msg('Configurações salvas');await refresh()}catch(e){msg(e)}
 }
 
 async function reset() {
-  if (!confirm('Apagar ordens e saldo virtual, voltando a US$ 10.000? Primeiro pause o robô.')) return;
-  try { await post('reset'); await refresh() } catch (e) { msg(e) }
+  if(!confirm('Apagar ordens e saldo virtual, voltando a US$ 10.000? Primeiro pause o robô.')) return;
+  try{await post('reset');await refresh()}catch(e){msg(e)}
 }
 
-function text(v) { return String(v ?? '—').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) }
+function text(v){return String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function updateMotorUI(a) {
-  const led = $('motor-led');
-  const txt = $('motor-text');
-  const pill = $('running');
-
-  if (a.account.halted) {
-    led.className = 'motor-indicator error';
-    txt.textContent = 'BLOQUEADO POR RISCO';
-    txt.style.color = 'var(--red)';
-    pill.className = 'status-pill halted';
-    pill.textContent = 'Bloqueado';
-  } else if (a.settings.enabled) {
-    led.className = 'motor-indicator active';
-    txt.textContent = 'EM EXECUÇÃO';
-    txt.style.color = 'var(--green)';
-    pill.className = 'status-pill running';
-    pill.textContent = 'Ativo';
-  } else {
-    led.className = 'motor-indicator paused';
-    txt.textContent = 'PAUSADO';
-    txt.style.color = 'var(--amber)';
-    pill.className = 'status-pill paused';
-    pill.textContent = 'Pausado';
-  }
+  const led=$('motor-led'), txt=$('motor-text'), pill=$('running');
+  if(a.account.halted){led.className='led err';txt.textContent='BLOQUEADO POR RISCO';txt.style.color='var(--red)';pill.className='pill halted';pill.textContent='Bloqueado'}
+  else if(a.settings.enabled){led.className='led on';txt.textContent='EM EXECUÇÃO';txt.style.color='var(--green)';pill.className='pill running';pill.textContent='Ativo'}
+  else{led.className='led wait';txt.textContent='PAUSADO';txt.style.color='var(--amber)';pill.className='pill paused';pill.textContent='Pausado'}
 }
 
 function updateAIPanel(a) {
-  const apiStatus = $('ai-api-status');
-  const filterStatus = $('ai-filter-status');
-  const badge = $('ai-badge');
-  const log = $('ai-log');
-
-  if (a.settings.ai_enabled) {
-    if (a.ai_configured) {
-      apiStatus.textContent = 'Conectada';
-      apiStatus.className = 'value ok';
-      filterStatus.textContent = 'Ativo';
-      filterStatus.className = 'value ok';
-      badge.className = 'status-pill running';
-      badge.textContent = 'IA Ativa';
-    } else {
-      apiStatus.textContent = 'Chave ausente';
-      apiStatus.className = 'value err';
-      filterStatus.textContent = 'Bloqueado';
-      filterStatus.className = 'value err';
-      badge.className = 'status-pill halted';
-      badge.textContent = 'Erro';
-    }
-  } else {
-    apiStatus.textContent = 'Não configurada';
-    apiStatus.className = 'value warn';
-    filterStatus.textContent = 'Desativado';
-    filterStatus.className = 'value warn';
-    badge.className = 'status-pill paused';
-    badge.textContent = 'Inativo';
-  }
-
-  // Update AI decision info from latest decision
-  if (a.decisions && a.decisions.length > 0) {
-    const latest = a.decisions[0];
-    if (latest.ai_reason) {
-      $('ai-last-decision').textContent = latest.ai_reason.length > 30 ? latest.ai_reason.slice(0, 30) + '...' : latest.ai_reason;
-      $('ai-last-query').textContent = latest.ts ? latest.ts.slice(0, 19) : '—';
-    }
-  }
+  const apiS=$('ai-api-status'), filtS=$('ai-filter-status'), badge=$('ai-badge');
+  if(a.settings.ai_enabled){
+    if(a.ai_configured){apiS.textContent='Conectada';apiS.className='v ok';filtS.textContent='Ativo';filtS.className='v ok';badge.className='pill running';badge.textContent='IA Ativa'}
+    else{apiS.textContent='Chave ausente';apiS.className='v err';filtS.textContent='Bloqueado';filtS.className='v err';badge.className='pill halted';badge.textContent='Erro'}
+  }else{apiS.textContent='Não configurada';apiS.className='v warn';filtS.textContent='Desativado';filtS.className='v warn';badge.className='pill paused';badge.textContent='Inativo'}
+  if(a.decisions&&a.decisions.length>0){const l=a.decisions[0];if(l.ai_reason){$('ai-last-decision').textContent=l.ai_reason.length>30?l.ai_reason.slice(0,30)+'...':l.ai_reason;$('ai-last-query').textContent=l.ts?l.ts.slice(0,19):'—'}}
 }
 
 async function refresh() {
   try {
     const a = await api('status');
-    $('equity').textContent = money(a.equity);
-    $('cash').textContent = money(a.account.cash);
-    $('pnl').textContent = money(a.account.realized);
-    $('pnl').className = 'kpi-value ' + (a.account.realized < 0 ? 'red' : 'green');
-    $('price').textContent = money(a.price);
-    $('marketname').textContent = a.settings.symbol + ' · Binance';
-
+    $('equity').textContent=money(a.equity);
+    $('cash').textContent=money(a.account.cash);
+    $('pnl').textContent=money(a.account.realized);
+    $('pnl').className='kpi-val '+(a.account.realized<0?'red':'green');
+    $('price').textContent=money(a.price);
+    $('marketname').textContent=a.settings.symbol+' · Binance';
     updateMotorUI(a);
     updateAIPanel(a);
-
-    $('position').textContent = a.account.qty ? a.account.qty.toFixed(6) + ' un' : 'Nenhuma';
-    $('entry').textContent = a.account.qty ? money(a.account.entry) : '—';
-
-    let d = a.decisions[0];
-    $('last').textContent = d ? `${d.signal}: ${d.reason} ${d.ai_reason || ''}` : 'Aguardando primeira análise de candle.';
-
-    // Recent actions
-    if (a.decisions && a.decisions.length > 0) {
-      const recent = a.decisions.slice(0, 3).map(x => `[${x.ts?.slice(11, 19) || '?'}] ${x.signal}`).join(' · ');
-      $('recent-actions').textContent = recent || 'Aguardando...';
-    }
-
-    // Trades table
-    $('trades').innerHTML = a.trades.length
-      ? a.trades.map(x => `<tr><td>${text(x.ts.slice(0, 19))}</td><td class="${x.side === 'BUY' ? 'green' : 'red'}">${text(x.side)}</td><td>${text(x.symbol)}</td><td>${money(x.price)}</td><td>${x.qty.toFixed(6)}</td><td>${x.pnl == null ? '—' : money(x.pnl)}</td></tr>`).join('')
-      : '<tr><td colspan="6" style="color:var(--text-dim)">Nenhuma ordem virtual até agora.</td></tr>';
-
-    // Decisions table
-    $('decisions').innerHTML = a.decisions.map(x => `<tr><td>${text(x.ts.slice(0, 19))}</td><td>${text(x.signal)}</td><td>${money(x.price)}</td><td>${text(x.reason)}</td><td>${text(x.ai_reason)}</td></tr>`).join('')
-      || '<tr><td colspan="5" style="color:var(--text-dim)">Sem decisões ainda.</td></tr>';
-
-    // Populate settings on first load
-    if (first) {
-      for (let k in a.settings) {
-        if ($(k)) {
-          if ($(k).type === 'checkbox') $(k).checked = a.settings[k];
-          else $(k).value = a.settings[k];
-        }
-      }
-      // Init chart with correct symbol
-      currentSymbol = mapSymbol(a.settings.symbol);
-      initChart(currentSymbol);
-      first = false;
-    }
-
-    $('updated').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
-  } catch (e) {
-    $('last').textContent = 'Erro: ' + e.message;
-  }
+    $('position').textContent=a.account.qty?a.account.qty.toFixed(6)+' un':'Nenhuma';
+    $('entry').textContent=a.account.qty?money(a.account.entry):'—';
+    let d=a.decisions[0];
+    $('last').textContent=d?`${d.signal}: ${d.reason} ${d.ai_reason||''}`:'Aguardando primeira análise de candle.';
+    if(a.decisions&&a.decisions.length>0){const recent=a.decisions.slice(0,3).map(x=>`[${x.ts?.slice(11,19)||'?'}] ${x.signal}`).join(' · ');$('recent-actions').textContent=recent||'Aguardando...'}
+    $('trades').innerHTML=a.trades.length?a.trades.map(x=>`<tr><td>${text(x.ts.slice(0,19))}</td><td class="${x.side==='BUY'?'green':'red'}">${text(x.side)}</td><td>${text(x.symbol)}</td><td>${money(x.price)}</td><td>${x.qty.toFixed(6)}</td><td>${x.pnl==null?'—':money(x.pnl)}</td></tr>`).join(''):'<tr><td colspan="6" style="color:var(--dim)">Nenhuma ordem virtual até agora.</td></tr>';
+    $('decisions').innerHTML=a.decisions.map(x=>`<tr><td>${text(x.ts.slice(0,19))}</td><td>${text(x.signal)}</td><td>${money(x.price)}</td><td>${text(x.reason)}</td><td>${text(x.ai_reason)}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--dim)">Sem decisões ainda.</td></tr>';
+    if(first){for(let k in a.settings){if($(k)){if($(k).type==='checkbox')$(k).checked=a.settings[k];else $(k).value=a.settings[k]}}currentSymbol=a.settings.symbol;fetchCandles(currentSymbol);first=false}
+  } catch(e) { $('last').textContent='Erro: '+e.message }
 }
 
-// Initialize
-initChart('BINANCE:BTCUSDT');
+// ── Init ──
+initChart();
+fetchCandles('BTCUSDT');
 refresh();
 setInterval(refresh, 10000);
+setInterval(() => fetchCandles(currentSymbol), 30000);
 </script>
 </body>
 </html>
