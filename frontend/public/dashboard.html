@@ -1,19 +1,806 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trader IA PRO | Paper Trading</title><style>
-:root{color-scheme:dark;--bg:#070c16;--panel:#111b2b;--bd:#26344b;--text:#edf5ff;--muted:#94a5bd;--green:#37d6a0;--red:#fd6980;--accent:#5e9cff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,Segoe UI,sans-serif}header{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--bd);padding:19px max(22px,calc((100vw - 1340px)/2));background:#0b1422;flex-wrap:wrap}.brand{font-size:21px;font-weight:850;letter-spacing:-.6px}.brand b{color:var(--accent)}.tag{display:inline-block;border:1px solid #a67e28;color:#ffda83;background:#332719;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.7px}main{max-width:1340px;margin:auto;padding:25px 20px}.intro{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:20px}h1{font-size:28px;letter-spacing:-.7px;margin:0 0 3px}p{margin:0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--panel);border:1px solid var(--bd);border-radius:16px;padding:20px;min-width:0}.kpi{font-size:27px;letter-spacing:-1px;font-weight:780;margin-top:6px}.dim{color:var(--muted);font-size:12px}.section{margin-top:16px;display:grid;grid-template-columns:1.7fr 1fr;gap:16px}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}h2{font-size:16px;margin:0}button,select,input{background:#19283e;color:white;border:1px solid #3b5272;border-radius:9px;padding:10px 12px;font:inherit}button{cursor:pointer;font-weight:650}button:hover{background:#264263}button.primary{background:#207759;border-color:#2aa47c}button.danger{background:#713044;border-color:#ab415b}.btnrow{display:flex;gap:9px;flex-wrap:wrap}canvas{display:block;width:100%;height:290px}label{display:block;color:var(--muted);font-size:12px;margin:12px 0 5px}input,select{width:100%}input[type=checkbox]{width:auto;transform:scale(1.2);margin-right:8px}table{width:100%;border-collapse:collapse;text-align:left}th{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600}td,th{padding:11px 9px;border-bottom:1px solid var(--bd)}.scroll{overflow:auto;max-height:390px}td{white-space:nowrap}.green{color:var(--green)}.red{color:var(--red)}.status{padding:9px 12px;border-radius:9px;background:#1b2b40;color:#c8dcf5;margin-top:13px;font-size:12px;overflow-wrap:anywhere}.settings{display:grid;grid-template-columns:repeat(2,1fr);gap:0 12px}.footer{margin-top:18px;color:var(--muted);font-size:12px}#ai-status{color:#ffda83}@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.section{grid-template-columns:1fr}}@media(max-width:500px){.grid{grid-template-columns:1fr 1fr}.kpi{font-size:21px}.card{padding:13px}.settings{grid-template-columns:1fr}h1{font-size:23px}}
-</style></head><body><header><div class="brand">◈ TRADER <b>IA PRO</b></div><span class="tag">● PAPER TRADING · ORDENS REAIS BLOQUEADAS</span></header><main><div class="intro"><div><h1>Centro de operações</h1><p>Estratégia automática • Spot • Candles fechados de 15 minutos • Sem alavancagem</p></div><div class="btnrow"><button id="start" class="primary" onclick="toggle(true)">▶ Iniciar robô</button><button onclick="toggle(false)">Ⅱ Pausar</button><button onclick="run()">↻ Verificar mercado</button></div></div><div class="grid"><div class="card"><div class="dim">Patrimônio simulado</div><div class="kpi" id="equity">...</div><div class="dim">Saldo inicial US$ 10.000</div></div><div class="card"><div class="dim">Saldo disponível</div><div class="kpi" id="cash">...</div><div class="dim">USDT fictício</div></div><div class="card"><div class="dim">Lucro / prejuízo realizado</div><div class="kpi" id="pnl">...</div><div class="dim">Taxas incluídas</div></div><div class="card"><div class="dim">Preço de referência</div><div class="kpi" id="price">...</div><div class="dim" id="marketname">BTC/USDT · Binance pública</div></div></div>
-<div class="section"><div class="card"><div class="panel-head"><h2>Preço do mercado · últimos 100 candles</h2><span class="dim" id="updated">Carregando...</span></div><canvas id="chart" width="1000" height="360"></canvas><p class="dim">Fonte: candles públicos da Binance. Sem dados, o robô não opera. O gráfico mostra fechamentos, não projeções da IA.</p></div><div class="card"><div class="panel-head"><h2>Motor de negociação</h2><span id="running" class="tag">DESLIGADO</span></div><div class="dim">Posição aberta</div><div class="kpi" id="position">...</div><div class="dim" id="entry">Entrada: —</div><div class="status" id="last">Sem decisões ainda.</div><div style="margin-top:17px" class="dim">Filtro OpenAI</div><div id="ai-status">Verificando...</div><div class="dim" style="margin-top:10px">A IA pode vetar compras, mas não contorna limites de risco nem executa ordens.</div></div></div>
-<div class="section"><div class="card"><div class="panel-head"><h2>Histórico de ordens virtuais</h2><span class="dim">Compra e venda spot</span></div><div class="scroll"><table><thead><tr><th>Data UTC</th><th>Lado</th><th>Par</th><th>Preço</th><th>Quantidade</th><th>P&L</th></tr></thead><tbody id="trades"><tr><td colspan="6">Nenhuma operação simulada ainda.</td></tr></tbody></table></div></div><div class="card"><div class="panel-head"><h2>Configurações e proteção</h2></div><div class="settings"><div><label>Par</label><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option></select></div><div><label>Capital máximo por compra (%)</label><input id="allocation_pct" type="number" min="0.1" max="20" step="0.1"></div><div><label>Risco por operação (%)</label><input id="risk_pct" type="number" min="0.1" max="2" step="0.1"></div><div><label>Stop-loss (%)</label><input id="stop_pct" type="number" min="0.1" max="5" step="0.1"></div><div><label>Take-profit (%)</label><input id="take_pct" type="number" min="0.1" max="15" step="0.1"></div><div><label>Perda diária máxima (%)</label><input id="daily_loss_pct" type="number" min="0.1" max="5" step="0.1"></div><div><label>Drawdown máximo (%)</label><input id="max_drawdown_pct" type="number" min="0.1" max="20" step="0.1"></div><div><label>Máximo de ordens/dia</label><input id="max_trades_day" type="number" min="1" max="20" step="1"></div><div><label>Intervalo entre ordens (min)</label><input id="cooldown_minutes" type="number" min="1" max="240" step="1"></div><div><label>Taxa simulada (%)</label><input id="fee_pct" type="number" min="0.01" max="1" step="0.01"></div></div><label style="margin-top:15px"><input type="checkbox" id="ai_enabled"> Usar OpenAI como filtro de entrada (necessita chave no servidor)</label><div class="btnrow" style="margin-top:14px"><button class="primary" onclick="saveSettings()">Salvar configurações</button><button class="danger" onclick="reset()">Reiniciar simulação</button></div></div></div><div class="section"><div class="card" style="grid-column:1/-1"><div class="panel-head"><h2>Diário de decisões do robô</h2><span class="dim">Auditoria do sinal e do veto da IA</span></div><div class="scroll"><table><thead><tr><th>Data UTC</th><th>Sinal</th><th>Preço</th><th>Justificativa</th><th>IA</th></tr></thead><tbody id="decisions"></tbody></table></div></div></div><div class="footer">Versão 1.0 local • Binance somente leitura • Sem chaves de corretora • Sem ordens reais • Sistema experimental, não comprovado como lucrativo.</div></main><script>
-const $=id=>document.getElementById(id);const money=n=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);let first=true;let lastRows=[];
-async function api(path,opts={}){const r=await fetch('/api/'+path,{headers:{'Content-Type':'application/json'},...opts});let v=await r.json();if(!r.ok)throw Error(v.detail||'Falha de comunicação');return v}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trader IA PRO | Paper Trading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #06090f;
+  --card: #0c1220;
+  --card-hover: #111a2e;
+  --border: rgba(56, 189, 248, 0.08);
+  --border-active: rgba(56, 189, 248, 0.2);
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.15);
+  --green: #34d399;
+  --green-dim: rgba(52, 211, 153, 0.12);
+  --red: #fb7185;
+  --red-dim: rgba(251, 113, 133, 0.12);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251, 191, 36, 0.1);
+  --radius: 16px;
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle grid texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Top ambient glow */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(56, 189, 248, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(6, 9, 15, 0.8);
+  backdrop-filter: blur(16px);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #06090f;
+}
+
+.brand b { color: var(--accent); }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: var(--amber);
+  background: var(--amber-dim);
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--amber);
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+/* Hero section */
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.hero h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.hero p {
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 500px;
+}
+
+/* Buttons */
+.btnrow { display: flex; gap: 10px; flex-wrap: wrap; }
+
+button, select, input {
+  font-family: var(--font-display);
+  font-size: 13px;
+  border-radius: 10px;
+  border: 1px solid var(--border-active);
+  background: var(--card);
+  color: var(--text);
+  padding: 10px 16px;
+  transition: all 0.2s ease;
+}
+
+button {
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+button:hover {
+  background: var(--card-hover);
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button.primary {
+  background: linear-gradient(135deg, #059669, #34d399);
+  border-color: transparent;
+  color: #022c22;
+}
+
+button.primary:hover {
+  background: linear-gradient(135deg, #34d399, #6ee7b7);
+  box-shadow: 0 0 24px var(--green-dim);
+}
+
+button.danger {
+  background: var(--red-dim);
+  border-color: rgba(251, 113, 133, 0.2);
+  color: var(--red);
+}
+
+button.danger:hover {
+  background: rgba(251, 113, 133, 0.2);
+  border-color: var(--red);
+}
+
+/* Bento Grid Layout */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(140px, auto);
+  gap: 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  min-width: 0;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.03) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.card:hover {
+  border-color: var(--border-active);
+  transform: translateY(-2px);
+}
+
+.card:hover::before { opacity: 1; }
+
+/* KPI Cards span 1 col each */
+.kpi-card .dim {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.kpi {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.kpi-card .sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 10px;
+  font-family: var(--font-mono);
+}
+
+/* Chart card spans 3 cols, 2 rows */
+.chart-card {
+  grid-column: span 3;
+  grid-row: span 2;
+}
+
+/* Motor card spans 1 col, 2 rows */
+.motor-card {
+  grid-column: span 1;
+  grid-row: span 2;
+}
+
+/* Trades card spans 2 cols */
+.trades-card {
+  grid-column: span 2;
+}
+
+/* Settings card spans 2 cols */
+.settings-card {
+  grid-column: span 2;
+}
+
+/* Decisions card spans full width */
+.decisions-card {
+  grid-column: span 4;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 320px;
+  border-radius: 10px;
+}
+
+/* Status indicators */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.running {
+  background: var(--green-dim);
+  color: var(--green);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.status-badge.paused {
+  background: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.status-badge.halted {
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid rgba(251, 113, 133, 0.2);
+}
+
+.status-box {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+
+#ai-status {
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* Form elements */
+label {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 14px 0 6px;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(6, 9, 15, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+input:hover, select:hover { border-color: var(--border-active); }
+input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); outline: none; }
+
+input[type=checkbox] {
+  width: auto;
+  transform: scale(1.3);
+  margin-right: 10px;
+  accent-color: var(--accent);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 16px;
+}
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; text-align: left; }
+
+th {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(56, 189, 248, 0.02); }
+
+.scroll {
+  overflow: auto;
+  max-height: 360px;
+  border-radius: 10px;
+}
+
+.scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll::-webkit-scrollbar-track { background: transparent; }
+.scroll::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 3px; }
+
+.green { color: var(--green); }
+.red { color: var(--red); }
+
+.footer {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .bento-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-card { grid-column: span 2; grid-row: span 1; }
+  .motor-card { grid-column: span 2; grid-row: span 1; }
+  .decisions-card { grid-column: span 2; }
+}
+
+@media (max-width: 640px) {
+  header { padding: 16px 20px; }
+  main { padding: 20px 16px 40px; }
+  .hero h1 { font-size: 24px; }
+  .bento-grid { grid-template-columns: 1fr; }
+  .chart-card, .motor-card, .trades-card, .settings-card, .decisions-card {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+  .kpi { font-size: 24px; }
+  .card { padding: 18px; }
+  .settings-grid { grid-template-columns: 1fr; }
+  canvas { height: 240px; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">T</div>
+    TRADER <b>IA PRO</b>
+  </div>
+  <span class="tag">Paper Trading · Ordens reais bloqueadas</span>
+</header>
+
+<main>
+  <div class="hero">
+    <div>
+      <h1>Centro de operações</h1>
+      <p>Estratégia automática · Spot · Candles fechados de 15 minutos · Sem alavancagem</p>
+    </div>
+    <div class="btnrow">
+      <button id="start" class="primary" onclick="toggle(true)">▶ Iniciar robô</button>
+      <button onclick="toggle(false)">Ⅱ Pausar</button>
+      <button onclick="run()">↻ Verificar mercado</button>
+    </div>
+  </div>
+
+  <div class="bento-grid">
+    <!-- KPI Cards -->
+    <div class="card kpi-card">
+      <div class="dim">Patrimônio simulado</div>
+      <div class="kpi" id="equity">...</div>
+      <div class="sub">Saldo inicial US$ 10.000</div>
+    </div>
+    <div class="card kpi-card">
+      <div class="dim">Saldo disponível</div>
+      <div class="kpi" id="cash">...</div>
+      <div class="sub">USDT fictício</div>
+    </div>
+    <div class="card kpi-card">
+      <div class="dim">Lucro / prejuízo realizado</div>
+      <div class="kpi" id="pnl">...</div>
+      <div class="sub">Taxas incluídas</div>
+    </div>
+    <div class="card kpi-card">
+      <div class="dim">Preço de referência</div>
+      <div class="kpi" id="price">...</div>
+      <div class="sub" id="marketname">BTC/USDT · Binance pública</div>
+    </div>
+
+    <!-- Chart Card -->
+    <div class="card chart-card">
+      <div class="panel-head">
+        <h2>Preço do mercado · últimos 100 candles</h2>
+        <span class="dim" id="updated" style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Carregando...</span>
+      </div>
+      <canvas id="chart" width="1000" height="360"></canvas>
+      <p style="color:var(--muted);font-size:11px;margin-top:14px;font-family:var(--font-mono)">Fonte: candles públicos da Binance. Sem dados, o robô não opera. O gráfico mostra fechamentos, não projeções da IA.</p>
+    </div>
+
+    <!-- Motor Card -->
+    <div class="card motor-card">
+      <div class="panel-head">
+        <h2>Motor de negociação</h2>
+        <span id="running" class="status-badge paused">DESLIGADO</span>
+      </div>
+      <div class="dim" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted)">Posição aberta</div>
+      <div class="kpi" id="position" style="font-size:20px;margin-top:8px">...</div>
+      <div class="dim" id="entry" style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:6px">Entrada: —</div>
+      <div class="status-box" id="last">Sem decisões ainda.</div>
+      <div style="margin-top:18px">
+        <div class="dim" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted)">Filtro OpenAI</div>
+        <div id="ai-status">Verificando...</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:8px;line-height:1.5">A IA pode vetar compras, mas não contorna limites de risco nem executa ordens.</div>
+      </div>
+    </div>
+
+    <!-- Trades Card -->
+    <div class="card trades-card">
+      <div class="panel-head">
+        <h2>Histórico de ordens virtuais</h2>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Compra e venda spot</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Data UTC</th><th>Lado</th><th>Par</th><th>Preço</th><th>Qtd</th><th>P&L</th></tr></thead>
+          <tbody id="trades"><tr><td colspan="6" style="color:var(--muted)">Nenhuma operação simulada ainda.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Settings Card -->
+    <div class="card settings-card">
+      <div class="panel-head">
+        <h2>Configurações e proteção</h2>
+      </div>
+      <div class="settings-grid">
+        <div><label>Par</label><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option></select></div>
+        <div><label>Capital máximo por compra (%)</label><input id="allocation_pct" type="number" min="0.1" max="20" step="0.1"></div>
+        <div><label>Risco por operação (%)</label><input id="risk_pct" type="number" min="0.1" max="2" step="0.1"></div>
+        <div><label>Stop-loss (%)</label><input id="stop_pct" type="number" min="0.1" max="5" step="0.1"></div>
+        <div><label>Take-profit (%)</label><input id="take_pct" type="number" min="0.1" max="15" step="0.1"></div>
+        <div><label>Perda diária máxima (%)</label><input id="daily_loss_pct" type="number" min="0.1" max="5" step="0.1"></div>
+        <div><label>Drawdown máximo (%)</label><input id="max_drawdown_pct" type="number" min="0.1" max="20" step="0.1"></div>
+        <div><label>Máximo de ordens/dia</label><input id="max_trades_day" type="number" min="1" max="20" step="1"></div>
+        <div><label>Intervalo entre ordens (min)</label><input id="cooldown_minutes" type="number" min="1" max="240" step="1"></div>
+        <div><label>Taxa simulada (%)</label><input id="fee_pct" type="number" min="0.01" max="1" step="0.01"></div>
+      </div>
+      <label style="margin-top:18px"><input type="checkbox" id="ai_enabled"> Usar OpenAI como filtro de entrada (necessita chave no servidor)</label>
+      <div class="btnrow" style="margin-top:18px">
+        <button class="primary" onclick="saveSettings()">Salvar configurações</button>
+        <button class="danger" onclick="reset()">Reiniciar simulação</button>
+      </div>
+    </div>
+
+    <!-- Decisions Card -->
+    <div class="card decisions-card">
+      <div class="panel-head">
+        <h2>Diário de decisões do robô</h2>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Auditoria do sinal e do veto da IA</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Data UTC</th><th>Sinal</th><th>Preço</th><th>Justificativa</th><th>IA</th></tr></thead>
+          <tbody id="decisions"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Versão 1.0 local · Binance somente leitura · Sem chaves de corretora · Sem ordens reais · Sistema experimental, não comprovado como lucrativo.</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const money=n=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
+let first=true;
+let lastRows=[];
+
+async function api(path,opts={}){
+  const r=await fetch('/api/'+path,{headers:{'Content-Type':'application/json'},...opts});
+  let v=await r.json();
+  if(!r.ok) throw Error(v.detail||'Falha de comunicação');
+  return v;
+}
+
 async function post(path,data={}){return api(path,{method:'POST',body:JSON.stringify(data)})}
 function msg(e){alert(typeof e==='string'?e:e.message)}
-async function toggle(enabled){try{await post('engine',{enabled});await refresh()}catch(e){msg(e)}}
-async function run(){try{let a=await post('step');msg(a.status==='processed'?`${a.signal}: ${a.reason}`:a.reason);await refresh()}catch(e){msg(e)}}
-async function saveSettings(){let patch={};for(let k of ['symbol','allocation_pct','risk_pct','stop_pct','take_pct','daily_loss_pct','max_drawdown_pct','max_trades_day','cooldown_minutes','fee_pct','ai_enabled']){let el=$(k);patch[k]=k==='symbol'?el.value:k==='ai_enabled'?el.checked:Number(el.value)};try{await post('settings',patch);msg('Configurações salvas');await refresh()}catch(e){msg(e)}}
-async function reset(){if(!confirm('Apagar ordens e saldo virtual, voltando a US$ 10.000? Primeiro pause o robô.'))return;try{await post('reset');await refresh()}catch(e){msg(e)}}
+
+async function toggle(enabled){
+  try{await post('engine',{enabled});await refresh()}catch(e){msg(e)}
+}
+
+async function run(){
+  try{
+    let a=await post('step');
+    msg(a.status==='processed'?`${a.signal}: ${a.reason}`:a.reason);
+    await refresh();
+  }catch(e){msg(e)}
+}
+
+async function saveSettings(){
+  let patch={};
+  for(let k of ['symbol','allocation_pct','risk_pct','stop_pct','take_pct','daily_loss_pct','max_drawdown_pct','max_trades_day','cooldown_minutes','fee_pct','ai_enabled']){
+    let el=$(k);
+    patch[k]=k==='symbol'?el.value:k==='ai_enabled'?el.checked:Number(el.value);
+  }
+  try{await post('settings',patch);msg('Configurações salvas');await refresh()}catch(e){msg(e)}
+}
+
+async function reset(){
+  if(!confirm('Apagar ordens e saldo virtual, voltando a US$ 10.000? Primeiro pause o robô.')) return;
+  try{await post('reset');await refresh()}catch(e){msg(e)}
+}
+
 function text(v){return String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-async function refresh(){try{const a=await api('status');$('equity').textContent=money(a.equity);$('cash').textContent=money(a.account.cash);$('pnl').textContent=money(a.account.realized);$('pnl').className='kpi '+(a.account.realized<0?'red':'green');$('price').textContent=money(a.price);$('marketname').textContent=a.settings.symbol+' · Binance pública';$('running').textContent=a.account.halted?'BLOQUEADO':a.settings.enabled?'EM EXECUÇÃO':'PAUSADO';$('position').textContent=a.account.qty?a.account.qty.toFixed(6)+' unidades':'Nenhuma';$('entry').textContent='Entrada: '+(a.account.qty?money(a.account.entry):'—');$('ai-status').textContent=a.settings.ai_enabled?(a.ai_configured?'Ativo: avalia cada possível compra':'Ativado sem chave: compras serão vetadas'):'Desativado: estratégia técnica sem IA';let d=a.decisions[0];$('last').textContent=d?`${d.signal}: ${d.reason} ${d.ai_reason||''}`:'Aguardando primeira análise de candle.';$('trades').innerHTML=a.trades.length?a.trades.map(x=>`<tr><td>${text(x.ts.slice(0,19))}</td><td class="${x.side==='BUY'?'green':'red'}">${text(x.side)}</td><td>${text(x.symbol)}</td><td>${money(x.price)}</td><td>${x.qty.toFixed(6)}</td><td>${x.pnl==null?'—':money(x.pnl)}</td></tr>`).join(''):'<tr><td colspan="6">Nenhuma ordem virtual até agora.</td></tr>';$('decisions').innerHTML=a.decisions.map(x=>`<tr><td>${text(x.ts.slice(0,19))}</td><td>${text(x.signal)}</td><td>${money(x.price)}</td><td>${text(x.reason)}</td><td>${text(x.ai_reason)}</td></tr>`).join('')||'<tr><td colspan="5">Sem decisões ainda.</td></tr>';if(first){for(let k in a.settings){if($(k)){if($(k).type==='checkbox')$(k).checked=a.settings[k];else $(k).value=a.settings[k]}}first=false}}catch(e){$('last').textContent='Erro: '+e.message}}
-function plot(rows){const canvas=$('chart'),ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#101a2a';ctx.fillRect(0,0,w,h);const values=rows.map(x=>x.close),lo=Math.min(...values),hi=Math.max(...values),range=hi-lo||1,pad=35;ctx.strokeStyle='#22364e';ctx.lineWidth=1;for(let j=0;j<5;j++){let y=pad+j*(h-2*pad)/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();ctx.fillStyle='#91a5bf';ctx.font='12px system-ui';ctx.fillText((hi-j*range/4).toFixed(2),pad+6,y-5)}ctx.beginPath();values.forEach((v,i)=>{const x=pad+i*(w-2*pad)/(values.length-1),y=pad+(hi-v)*(h-2*pad)/range;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle='#42d8b4';ctx.lineWidth=3;ctx.stroke()}
-async function market(){try{let x=await api('candles');if(x.candles.length){plot(x.candles);$('updated').textContent='Último candle fechado: '+new Date(x.candles.at(-1).t).toLocaleString('pt-BR')}}catch(e){$('updated').textContent='Dados indisponíveis: '+e.message;let c=$('chart').getContext('2d');c.clearRect(0,0,1000,360)}}
+
+function updateStatusBadge(a){
+  const el=$('running');
+  if(a.account.halted){
+    el.textContent='BLOQUEADO';
+    el.className='status-badge halted';
+  }else if(a.settings.enabled){
+    el.textContent='EM EXECUÇÃO';
+    el.className='status-badge running';
+  }else{
+    el.textContent='PAUSADO';
+    el.className='status-badge paused';
+  }
+}
+
+async function refresh(){
+  try{
+    const a=await api('status');
+    $('equity').textContent=money(a.equity);
+    $('cash').textContent=money(a.account.cash);
+    $('pnl').textContent=money(a.account.realized);
+    $('pnl').className='kpi '+(a.account.realized<0?'red':'green');
+    $('price').textContent=money(a.price);
+    $('marketname').textContent=a.settings.symbol+' · Binance pública';
+    updateStatusBadge(a);
+    $('position').textContent=a.account.qty?a.account.qty.toFixed(6)+' unidades':'Nenhuma';
+    $('entry').textContent='Entrada: '+(a.account.qty?money(a.account.entry):'—');
+    $('ai-status').textContent=a.settings.ai_enabled?(a.ai_configured?'Ativo: avalia cada possível compra':'Ativado sem chave: compras serão vetadas'):'Desativado: estratégia técnica sem IA';
+    let d=a.decisions[0];
+    $('last').textContent=d?`${d.signal}: ${d.reason} ${d.ai_reason||''}`:'Aguardando primeira análise de candle.';
+    $('trades').innerHTML=a.trades.length?a.trades.map(x=>`<tr><td>${text(x.ts.slice(0,19))}</td><td class="${x.side==='BUY'?'green':'red'}">${text(x.side)}</td><td>${text(x.symbol)}</td><td>${money(x.price)}</td><td>${x.qty.toFixed(6)}</td><td>${x.pnl==null?'—':money(x.pnl)}</td></tr>`).join(''):'<tr><td colspan="6" style="color:var(--muted)">Nenhuma ordem virtual até agora.</td></tr>';
+    $('decisions').innerHTML=a.decisions.map(x=>`<tr><td>${text(x.ts.slice(0,19))}</td><td>${text(x.signal)}</td><td>${money(x.price)}</td><td>${text(x.reason)}</td><td>${text(x.ai_reason)}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted)">Sem decisões ainda.</td></tr>';
+    if(first){
+      for(let k in a.settings){
+        if($(k)){
+          if($(k).type==='checkbox') $(k).checked=a.settings[k];
+          else $(k).value=a.settings[k];
+        }
+      }
+      first=false;
+    }
+  }catch(e){
+    $('last').textContent='Erro: '+e.message;
+  }
+}
+
+function plot(rows){
+  const canvas=$('chart'),ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  // Background
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'#0c1220');
+  grad.addColorStop(1,'#06090f');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,w,h);
+
+  const values=rows.map(x=>x.close);
+  const lo=Math.min(...values),hi=Math.max(...values),range=hi-lo||1,pad=40;
+
+  // Grid lines
+  ctx.strokeStyle='rgba(56,189,248,0.06)';
+  ctx.lineWidth=1;
+  for(let j=0;j<5;j++){
+    let y=pad+j*(h-2*pad)/4;
+    ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();
+    ctx.fillStyle='#475569';
+    ctx.font='11px "JetBrains Mono",monospace';
+    ctx.fillText((hi-j*range/4).toFixed(2),pad+8,y-6);
+  }
+
+  // Area fill under line
+  ctx.beginPath();
+  values.forEach((v,i)=>{
+    const x=pad+i*(w-2*pad)/(values.length-1);
+    const y=pad+(hi-v)*(h-2*pad)/range;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.lineTo(pad+(values.length-1)*(w-2*pad)/(values.length-1),h-pad);
+  ctx.lineTo(pad,h-pad);
+  ctx.closePath();
+  const areaGrad=ctx.createLinearGradient(0,pad,0,h-pad);
+  areaGrad.addColorStop(0,'rgba(52,211,153,0.12)');
+  areaGrad.addColorStop(1,'rgba(52,211,153,0)');
+  ctx.fillStyle=areaGrad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  values.forEach((v,i)=>{
+    const x=pad+i*(w-2*pad)/(values.length-1);
+    const y=pad+(hi-v)*(h-2*pad)/range;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.strokeStyle='#34d399';
+  ctx.lineWidth=2.5;
+  ctx.lineJoin='round';
+  ctx.stroke();
+
+  // Glow on last point
+  const lastX=pad+(values.length-1)*(w-2*pad)/(values.length-1);
+  const lastY=pad+(hi-values[values.length-1])*(h-2*pad)/range;
+  ctx.beginPath();
+  ctx.arc(lastX,lastY,4,0,Math.PI*2);
+  ctx.fillStyle='#34d399';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(lastX,lastY,10,0,Math.PI*2);
+  ctx.fillStyle='rgba(52,211,153,0.2)';
+  ctx.fill();
+}
+
+async function market(){
+  try{
+    let x=await api('candles');
+    if(x.candles.length){
+      plot(x.candles);
+      $('updated').textContent='Último candle fechado: '+new Date(x.candles.at(-1).t).toLocaleString('pt-BR');
+    }
+  }catch(e){
+    $('updated').textContent='Dados indisponíveis: '+e.message;
+    let c=$('chart').getContext('2d');
+    c.clearRect(0,0,1000,360);
+  }
+}
+
 refresh();market();setInterval(refresh,10000);setInterval(market,60000);
-</script></body></html>
+</script>
+</body>
+</html>
