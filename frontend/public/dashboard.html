@@ -263,18 +263,13 @@ function initChart() {
 // ── Fetch real candles from Binance public API ──
 async function fetchCandles(symbol) {
   try {
-    const url = 'https://api.binance.com/api/v3/klines?symbol=' + symbol + '&interval=15m&limit=200';
+    // Usa proxy interno para evitar CORS da Binance na Vercel
+    const url = '/api/candles-proxy?symbol=' + symbol + '&interval=15m&limit=200';
     const r = await fetch(url);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
-    // Binance format: [openTime, open, high, low, close, volume, ...]
-    const candles = data.map(d => ({
-      time: Math.floor(d[0] / 1000),
-      open: parseFloat(d[1]),
-      high: parseFloat(d[2]),
-      low: parseFloat(d[3]),
-      close: parseFloat(d[4]),
-    }));
+    // Proxy já retorna no formato Lightweight Charts
+    const candles = data.candles || [];
     if (candleSeries && candles.length) {
       candleSeries.setData(candles);
       $('updated').textContent = 'Ao vivo · ' + new Date().toLocaleTimeString('pt-BR');
@@ -355,7 +350,7 @@ initChart();
 fetchCandles('BTCUSDT');
 refresh();
 setInterval(refresh, 10000);
-setInterval(() => fetchCandles(currentSymbol), 30000);
+setInterval(() => fetchCandles(currentSymbol), 5000);
 </script>
 </body>
 </html>
