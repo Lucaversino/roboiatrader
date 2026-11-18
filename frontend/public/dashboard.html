@@ -428,26 +428,59 @@ function updateIndicators(candles) {
 }
 
 // ── Data Fetching via Proxy ──
+let reconnectTimer = null;
+let retryCount = 0;
+const MAX_RETRIES = 5;
+
 async function fetchCandles(symbol, interval) {
   try {
     $('conn-dot').className = 'conn-dot';
     $('conn-text').textContent = 'Carregando...';
-    const url = `/api/candles-proxy?symbol=${symbol}&interval=${interval}&limit=300`;
+    $('chart-status').textContent = 'Buscando dados...';
+
+    const url = `/api/candles-proxy?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=300`;
     const r = await fetch(url);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+
+    if (!r.ok) {
+      let errorMsg = `HTTP ${r.status}`;
+      try {
+        const errData = await r.json();
+        if (errData.error) errorMsg = errData.error;
+        if (errData.details) errorMsg += ': ' + errData.details.substring(0, 100);
+      } catch(_) {}
+      throw new Error(errorMsg);
+    }
+
     const data = await r.json();
-    const candles = data.candles || [];
+
+    if (!data.candles || !Array.isArray(data.candles)) {
+      throw new Error('Resposta inválida do servidor');
+    }
+
+    const candles = data.candles;
     if (candleSeries && candles.length) {
       candleSeries.setData(candles);
       // Volume data
-      const volData = candles.map((c,i) => ({ time: c.time, value: data.volumes ? data.volumes[i] : 0, color: c.close >= c.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)' }));
+      const volData = candles.map((c,i) => ({
+        time: c.time,
+        value: data.volumes ? data.volumes[i] : 0,
+        color: c.close >= c.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)'
+      }));
       volumeSeries.setData(volData);
       updateIndicators(candles);
-      // Update markers from trades
       updateTradeMarkers(candles);
+
       $('conn-dot').className = 'conn-dot live';
       $('conn-text').textContent = 'Ao vivo';
       $('chart-status').textContent = `${candles.length} candles · ${new Date().toLocaleTimeString('pt-BR')}`;
+
+      // Reset retry counter on success
+      retryCount = 0;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+
       // Header price
       const last = candles[candles.length-1];
       const prev = candles[candles.length-2];
@@ -459,12 +492,33 @@ async function fetchCandles(symbol, interval) {
           $('hdr-change').className = 'asset-change ' + (chg >= 0 ? 'up' : 'down');
         }
       }
+    } else {
+      throw new Error('Nenhum dado de candle retornado');
     }
   } catch(e) {
     $('conn-dot').className = 'conn-dot err';
-    $('conn-text').textContent = 'Erro';
-    $('chart-status').textContent = 'Erro: ' + e.message;
+    $('conn-text').textContent = 'Desconectado';
+    $('chart-status').innerHTML = `<span style="color:var(--red)">Erro: ${e.message}</span>`;
+
+    // Auto-retry with exponential backoff
+    if (retryCount < MAX_RETRIES) {
+      retryCount++;
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+      $('chart-status').innerHTML += ` · Reconectando em ${Math.round(delay/1000)}s (${retryCount}/${MAX_RETRIES})`;
+      reconnectTimer = setTimeout(() => fetchCandles(currentSymbol, currentInterval), delay);
+    } else {
+      $('chart-status').innerHTML += ` · <button onclick="retryConnection()" style="margin-left:8px;padding:2px 8px;font-size:10px;background:var(--accent);border:none;color:#fff;border-radius:3px;cursor:pointer">Tentar novamente</button>`;
+    }
   }
+}
+
+function retryConnection() {
+  retryCount = 0;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  fetchCandles(currentSymbol, currentInterval);
 }
 
 function updateTradeMarkers(candles) {
