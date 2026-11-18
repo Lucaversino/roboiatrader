@@ -471,8 +471,9 @@ async function fetchCandles(symbol, interval) {
       updateTradeMarkers(candles);
 
       $('conn-dot').className = 'conn-dot live';
-      $('conn-text').textContent = 'Ao vivo';
-      $('chart-status').textContent = `${candles.length} candles · ${new Date().toLocaleTimeString('pt-BR')}`;
+      const sourceLabel = data.source === 'coingecko' ? 'CoinGecko' : 'Binance';
+      $('conn-text').textContent = `Ao vivo · ${sourceLabel}`;
+      $('chart-status').textContent = `${candles.length} candles · ${sourceLabel} · ${new Date().toLocaleTimeString('pt-BR')}`;
 
       // Reset retry counter on success
       retryCount = 0;

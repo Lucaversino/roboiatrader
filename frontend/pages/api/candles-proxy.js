@@ -1,85 +1,136 @@
-// Proxy para contornar CORS da Binance na Vercel
-// Retorna candles + volumes separados para o Lightweight Charts
+// Proxy com fallback: tenta Binance Global primeiro, depois CoinGecko se bloqueado (erro 451)
 export default async function handler(req, res) {
-  const { symbol = 'BTCUSDT', interval = '15m', limit = '300' } = req.query;
+ const { symbol = 'BTCUSDT', interval = '15m', limit = '300' } = req.query;
 
-  try {
-    // Validação básica dos parâmetros
-    if (!symbol || !interval) {
-      return res.status(400).json({ error: 'Parâmetros symbol e interval são obrigatórios' });
-    }
+ // Mapeamento de símbolos para CoinGecko IDs
+ const coingeckoMap = {
+ 'BTCUSDT': 'bitcoin',
+ 'ETHUSDT': 'ethereum',
+ 'SOLUSDT': 'solana',
+ 'BNBUSDT': 'binancecoin',
+ 'ADAUSDT': 'cardano',
+ 'XRPUSDT': 'ripple'
+ };
 
-    const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${Math.min(parseInt(limit) || 300, 1000)}`;
+ // Mapeamento de intervalos para dias (CoinGecko usa dias, não candles)
+ const intervalToDays = {
+ '1m': 1, '3m': 1, '5m': 1, '15m': 1, '30m': 2,
+ '1h': 3, '4h': 7, '1d': 30, '1w': 90
+ };
 
-    const headers = {
-      'User-Agent': 'TraderIAPro/1.0',
-      'Accept': 'application/json',
-    };
+ const headers = {
+ 'User-Agent': 'TraderIAPro/1.0',
+ 'Accept': 'application/json',
+ };
 
-    // Adiciona API Key apenas se estiver configurada e não for string vazia
-    if (process.env.BINANCE_API_KEY && process.env.BINANCE_API_KEY.trim() !== '') {
-      headers['X-MBX-APIKEY'] = process.env.BINANCE_API_KEY.trim();
-    }
+ if (process.env.BINANCE_API_KEY && process.env.BINANCE_API_KEY.trim() !== '') {
+ headers['X-MBX-APIKEY'] = process.env.BINANCE_API_KEY.trim();
+ }
 
-    const response = await fetch(url, {
-      headers,
-      method: 'GET',
-    });
+ // Tenta Binance Global (data-api.binance.vision é menos restrito que api.binance.com)
+ const binanceEndpoints = [
+ `https://data-api.binance.vision/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${Math.min(parseInt(limit) || 300, 1000)}`,
+ `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${Math.min(parseInt(limit) || 300, 1000)}`
+ ];
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`Binance API error: ${response.status} - ${errorText}`);
-      return res.status(response.status).json({
-        error: `Binance API error: ${response.status}`,
-        details: errorText.substring(0, 200)
-      });
-    }
+ for (const url of binanceEndpoints) {
+ try {
+ const response = await fetch(url, { headers, method: 'GET' });
 
-    const data = await response.json();
+ if (!response.ok) {
+ const status = response.status;
+ // Se for 451 (bloqueio geográfico) ou 403, tenta próximo endpoint
+ if (status === 451 || status === 403) {
+ console.warn(`Binance blocked (${status}) on ${url}, trying next...`);
+ continue;
+ }
+ const errorText = await response.text().catch(() => '');
+ console.error(`Binance API error: ${status} - ${errorText}`);
+ continue;
+ }
 
-    // Valida se a resposta é um array válido
-    if (!Array.isArray(data) || data.length === 0) {
-      console.error('Resposta inválida da Binance:', data);
-      return res.status(500).json({ error: 'Resposta inválida da API Binance' });
-    }
+ const data = await response.json();
 
-    // Binance format: [openTime, open, high, low, close, volume, ...]
-    const candles = [];
-    const volumes = [];
+ if (!Array.isArray(data) || data.length === 0) {
+ console.warn('Resposta vazia da Binance, tentando próximo...');
+ continue;
+ }
 
-    for (const d of data) {
-      if (!Array.isArray(d) || d.length < 6) {
-        continue; // Pula entradas malformadas
-      }
+ const candles = [];
+ const volumes = [];
 
-      const time = Math.floor(Number(d[0]) / 1000);
-      const open = parseFloat(d[1]);
-      const high = parseFloat(d[2]);
-      const low = parseFloat(d[3]);
-      const close = parseFloat(d[4]);
-      const volume = parseFloat(d[5]);
+ for (const d of data) {
+ if (!Array.isArray(d) || d.length < 6) continue;
+ const time = Math.floor(Number(d[0]) / 1000);
+ const open = parseFloat(d[1]);
+ const high = parseFloat(d[2]);
+ const low = parseFloat(d[3]);
+ const close = parseFloat(d[4]);
+ const volume = parseFloat(d[5]);
+ if (isNaN(time) || isNaN(open)) continue;
+ candles.push({ time, open, high, low, close });
+ volumes.push(isNaN(volume) ? 0 : volume);
+ }
 
-      // Valida se os valores são números válidos
-      if (isNaN(time) || isNaN(open) || isNaN(high) || isNaN(low) || isNaN(close)) {
-        continue;
-      }
+ if (candles.length > 0) {
+ res.setHeader('Cache-Control', 'no-cache');
+ res.setHeader('X-Data-Source', 'binance');
+ return res.status(200).json({ candles, volumes, source: 'binance' });
+ }
+ } catch (e) {
+ console.warn(`Erro ao acessar ${url}: ${e.message}`);
+ continue;
+ }
+ }
 
-      candles.push({ time, open, high, low, close });
-      volumes.push(isNaN(volume) ? 0 : volume);
-    }
+ // Fallback: CoinGecko (sem bloqueio geográfico)
+ const cgId = coingeckoMap[symbol];
+ if (cgId) {
+ try {
+ const days = intervalToDays[interval] || 7;
+ const cgUrl = `https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=${days}`;
+ const cgResponse = await fetch(cgUrl, { headers: { 'Accept': 'application/json' } });
 
-    if (candles.length === 0) {
-      return res.status(500).json({ error: 'Nenhum dado válido retornado pela Binance' });
-    }
+ if (cgResponse.ok) {
+ const cgData = await cgResponse.json();
+ const prices = cgData.prices || [];
 
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(200).json({ candles, volumes });
-  } catch (error) {
-    console.error('Erro no proxy de candles:', error);
-    res.status(500).json({
-      error: error.message || 'Erro interno do servidor',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
+ if (prices.length > 0) {
+ // Converter dados do CoinGecko para formato OHLC aproximado
+ const candles = [];
+ const volumes = [];
+ const bucketSize = Math.max(1, Math.floor(prices.length / 300));
+
+ for (let i = 0; i < prices.length; i += bucketSize) {
+ const bucket = prices.slice(i, i + bucketSize);
+ if (bucket.length === 0) continue;
+
+ const time = Math.floor(bucket[0][0] / 1000);
+ const values = bucket.map(p => p[1]);
+ const open = values[0];
+ const close = values[values.length - 1];
+ const high = Math.max(...values);
+ const low = Math.min(...values);
+
+ candles.push({ time, open, high, low, close });
+ volumes.push(0); // CoinGecko não fornece volume por candle neste endpoint
+ }
+
+ if (candles.length > 0) {
+ res.setHeader('Cache-Control', 'no-cache');
+ res.setHeader('X-Data-Source', 'coingecko');
+ return res.status(200).json({ candles, volumes, source: 'coingecko' });
+ }
+ }
+ }
+ } catch (e) {
+ console.error(`CoinGecko fallback failed: ${e.message}`);
+ }
+ }
+
+ // Se tudo falhar
+ res.status(502).json({
+ error: 'Todos os provedores de dados indisponíveis',
+ details: 'Binance bloqueou o acesso (erro 451) e CoinGecko não respondeu. Verifique sua conexão ou tente novamente em alguns minutos.'
+ });
 }
